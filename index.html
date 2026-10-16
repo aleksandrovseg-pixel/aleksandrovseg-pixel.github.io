@@ -1308,7 +1308,7 @@ let _radPD=0;document.addEventListener("pointerdown",e=>{const b=e.target.closes
 document.addEventListener("click",e=>{const b=e.target.closest("[data-rad]");if(!b||!RAD)return;e.stopPropagation();if(performance.now()-_radPD<800)return;radAct(b)});
 function radAct(b){const a=b.dataset.rad,t=RAD.t,p=P_(t);
  if(a==="close")return closeRadial();if(a==="gear"){const u=RAD.u;closeRadial();openGear(u);return}if(a==="info"){closeRadial();overlay="unit:"+t;uiDirty=true;return}
- if(a==="up"){if(p.xp>=upCost(t)){window.__evoPick=null;upgradeType(t);upgradeFx(t);if(typeof overlay==="string"&&overlay.startsWith("evo:"))overlay=null}}
+ if(a==="up"){if(p.xp>=upCost(t)){window.__evoPick=window.__autoEvo;upgradeType(t);window.__evoPick=null;upgradeFx(t);if(typeof overlay==="string"&&overlay.startsWith("evo:"))overlay=null}}
  else if(a.startsWith("evo:")){if(p.xp>=upCost(t)){const id=a.slice(4);window.__evoPick=()=>id;upgradeType(t);window.__evoPick=null;upgradeFx(t);if(typeof overlay==="string"&&overlay.startsWith("evo:"))overlay=null}}
  uiDirty=true;renderRadial()}
 
@@ -1477,6 +1477,7 @@ cv.addEventListener("click",e=>{if(!G||!G._edge||overlay)return;const r=cv.getBo
 {const o=window.saveRun;let lastS=0,tm=null;window.saveRun=function(force){const n=performance.now();if(force===true||!window.inCombat()||n-lastS>=2000){lastS=n;return o.apply(this,arguments)}if(!tm)tm=setTimeout(()=>{tm=null;lastS=performance.now();o()},2000-(n-lastS))}}
 document.addEventListener("visibilitychange",()=>{if(document.hidden){if(G&&!G.sim){G.paused=true;uiDirty=true;try{saveRun(true)}catch(e){}}}else{_acc=0}});
 {const o=window.addAlly;window.addAlly=function(t){const r=o.apply(this,arguments);if(!G.sim&&!(window.__warm||(window.__warm={}))[t]){__warm[t]=1;setTimeout(()=>{try{const ids=new Set();for(const L of EVO_LV)for(const id of evoOptions(t,L)||[])ids.add(id);for(const id of ids){cell("u2",id);if(typeof formIcon==="function")formIcon(id)}}catch(e){}},50)}return r}}
+{const o=window.upgradeType;window.upgradeType=function(t){const ep=window.__evoPick;if(!ep&&!G.sim)window.__evoPick=window.__autoEvo;try{return o.apply(this,arguments)}finally{window.__evoPick=ep}}}
 
 window.__sim=function(policy,maxT=1500,cls){newGame(cls);G.sim=true;if(G.mode==="portal")autoDeck();if(G.mode==="portal"){for(const x of G.kitShop.slice().sort((a,b)=>b.price-a.price))if(G.kit>=x.price&&!G.eq[x.it.slot]){G.kit-=x.price;x.sold=1;G.bag.push(x.it);equip(x.it.uid)}}let t=0;const dt=1/30;while(!G.result&&t<maxT){if(overlay==="art"||overlay==="map"||overlay==="base"||overlay==="loadout"||overlay==="deck"||overlay==="deck5")overlay=null;if(overlay==="fork")chooseBranch("south");if(G.hl.pts>0)autoSkill();for(const t in SPECS)if(P_(t).lvl>=SPEC_LVL&&!P_(t).spec)P_(t).spec=SPECS[t][(Math.random()*3)|0].id;if(overlay==="camp"){if(policy.camp)policy.camp();overlay=null;G.state="march"}
  if(policy.tick)policy.tick(t);if(overlay!=="fork")update(dt);t+=dt}return{result:G.result,stage:G.mode==="portal"?G.world.nodes.filter(n=>n.visited).length:G.stage,arts:G.arts&&G.arts.length,rivals:G.stats.rivals||0,time:Math.round(t),kills:G.stats.kills,lost:G.stats.lost,gold:G.gold,allies:allies().length}};
