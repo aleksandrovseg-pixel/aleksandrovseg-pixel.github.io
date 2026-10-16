@@ -1003,7 +1003,14 @@ const BALANCE={
  campHeal:.4,              // лечение героя и отряда после зачистки лагеря (доля макс. HP)
  startPool:["runner","skeleton","skelarcher"], // лёгкие враги первых областей, без элиты
  easyDanger:1,             // до этой опасности включительно — только лёгкие враги
- refAlly:{hp:115,dmg:11,rate:1} // эталон компаньона для расчёта силы
+ refAlly:{hp:115,dmg:11,rate:1}, // эталон компаньона для расчёта силы
+ gear:{ // снаряжение отдельных бойцов за серебро (сбрасывается в конце забега)
+  tiers:[{n:"Простое",price:45},{n:"Хорошее",price:100},{n:"Отличное",price:190}],
+  tradeDiscount:.7,        // на торговом посту дешевле
+  weapon:[.15,.30,.50],    // +урон
+  armor:[[1,.10],[2,.20],[3,.35]], // +броня, +здоровье
+  amulet:[.08,.15,.25]     // +скорость атаки
+ }
 };
 window.BALANCE=BALANCE;
 const AREA_TYPES={
@@ -1266,11 +1273,11 @@ function renderRadial(){const el=document.getElementById("radial");if(!RAD||!el)
  let h=`<div class="tip wood"><b>${d.name}</b> · ур.${p.lvl}${nxt?" → "+L:" (макс.)"} · опыт <b style="color:#8a3ad0">${p.xp|0}</b><br><small>ОЗ ${lvlHp(t)}${nxt?" → <b style='color:#1a8a10'>"+lvlHp(t,L)+"</b>":""} · урон ${(+d.dmg).toFixed(1)} · дальн. ${(+d.range).toFixed(1)} м</small>${evo?`<br><small style="color:#8a3ad0">Порог ур.${L}: две ветки или «Остаться»</small>`:""}</div>`;
  if(evo){const os=evoOptions(t,L);os.forEach((id,i)=>{h+=`<div class="rc ${ok?"":"dis"}" style="left:${i?78:-78}px;top:-6px" data-rad="evo:${id}" title="${EVO.forms[id].name}"><img src="${formIcon(id)}"><span>${EVO.forms[id].name.split(" ")[0]}</span></div>`});h+=`<div class="rc up ${ok?"":"dis"}" style="left:0;top:40px" data-rad="evo:stay"><b>Остаться</b><span>${c} оп.</span></div>`}
  else h+=`<div class="rc up ${ok?"":"dis"}" style="left:0;top:0" data-rad="up">${nxt?`<b>⬆ ${L}</b><span>${c} оп.</span>`:"<b>★ MAX</b>"}</div>`;
- h+=`<div class="rc" style="left:${evo?0:-70}px;top:${evo?-58:30}px;width:40px;height:40px" data-rad="info"><b>ⓘ</b></div><div class="rc" style="left:${evo?70:70}px;top:${evo?52:30}px;width:40px;height:40px" data-rad="close"><b>✕</b></div>`;
+ h+=`<div class="rc" style="left:${evo?-70:-70}px;top:${evo?52:-52}px;width:48px;height:48px" data-rad="gear"><b>🛡</b><span>Снаряж.</span></div><div class="rc" style="left:${evo?0:-70}px;top:${evo?-58:30}px;width:40px;height:40px" data-rad="info"><b>ⓘ</b></div><div class="rc" style="left:${evo?70:70}px;top:${evo?52:30}px;width:40px;height:40px" data-rad="close"><b>✕</b></div>`;
  el.innerHTML=h}
 function upgradeFx(t){for(const u of units)if(u.type===t&&u.side==="a"&&!u.dead){u.flash=.2;u.upT=1;for(let i=0;i<3;i++)addPart(u.x,u.y-20-i*8,i%2?"#fff6a0":"#ffd23a",14,120,.8);zaps.push({ring:true,x:u.x,y:u.y,r:34,t:.6,c:"#ffd23a"})}}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-rad]");if(!b||!RAD)return;e.stopPropagation();const a=b.dataset.rad,t=RAD.t,p=P_(t);
- if(a==="close")return closeRadial();if(a==="info"){closeRadial();overlay="unit:"+t;uiDirty=true;return}
+ if(a==="close")return closeRadial();if(a==="gear"){const u=RAD.u;closeRadial();openGear(u);return}if(a==="info"){closeRadial();overlay="unit:"+t;uiDirty=true;return}
  if(a==="up"){if(p.xp>=upCost(t)){window.__evoPick=null;upgradeType(t);upgradeFx(t);if(typeof overlay==="string"&&overlay.startsWith("evo:"))overlay=null}}
  else if(a.startsWith("evo:")){if(p.xp>=upCost(t)){const id=a.slice(4);window.__evoPick=()=>id;upgradeType(t);window.__evoPick=null;upgradeFx(t);if(typeof overlay==="string"&&overlay.startsWith("evo:"))overlay=null}}
  uiDirty=true;renderRadial()},true);
@@ -1354,6 +1361,28 @@ function campHealTick(){if(!AREA_MODE||!G.world)return;const n=G.world.cur;const
  if(_campNode===n&&_campAlive){for(const g of _campAlive)if(!alive.has(g)){const k=BALANCE.campHeal;let any=0;for(const a of units)if(a.side==="a"&&!a.dead){a.hp=Math.min(a.mhp,a.hp+a.mhp*k);any=1}if(any&&!G.sim){banner("Лагерь зачищен — отряд восстановил "+Math.round(k*100)+"% здоровья");if(window.SFX)SFX.play("up",.5)}}}
  _campAlive=alive;_campNode=n}
 {const o=window.worldUpdate;window.worldUpdate=function(dt){const r=o.apply(this,arguments);campHealTick();return r}}
+
+// ---------- снаряжение бойцов (оружие / доспех / амулет) ----------
+const GEAR_SLOTS=[["weapon","⚔ Оружие"],["armor","🛡 Доспех"],["amulet","📿 Амулет"]];
+function gearOf(u){return u.ugear||(u.ugear={weapon:-1,armor:-1,amulet:-1})}
+function gearPrice(tier){const B=BALANCE.gear,n=curNode&&G.world?curNode():null;return Math.round(B.tiers[tier].price*(n&&n.type==="trade"?B.tradeDiscount:1))}
+function gearDesc(slot,tier){const B=BALANCE.gear;return slot==="weapon"?"+"+Math.round(B.weapon[tier]*100)+"% урона":slot==="armor"?"+"+B.armor[tier][0]+" брони, +"+Math.round(B.armor[tier][1]*100)+"% ОЗ":"+"+Math.round(B.amulet[tier]*100)+"% скор. атаки"}
+let GEAR_U=null;
+function openGear(u){GEAR_U=u;overlay="ugear";G.paused=true;uiDirty=true}
+function gearOverlay(){const u=GEAR_U;if(!u||u.dead){overlay=null;return""}const g=gearOf(u),nm=u.type==="hero"?CLASSES[G.cls].name+" (герой)":(ALLY[u.type]?ALLY[u.type].name:u.type),n=curNode();
+ let o=`<h2>🛡 Снаряжение — ${nm}</h2><p><small>💰 ${G.gold|0}${n&&n.type==="trade"?" · <b style='color:#1a8a10'>торговый пост: скидка "+Math.round((1-BALANCE.gear.tradeDiscount)*100)+"%</b>":" · на торговом посту дешевле"} · снаряжение действует до конца забега</small></p><div style="display:flex;flex-direction:column;gap:6px">`;
+ for(const[sl,lab]of GEAR_SLOTS){const cur=g[sl];o+=`<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><b style="width:92px">${lab}</b><small style="width:120px">${cur>=0?BALANCE.gear.tiers[cur].n+": "+gearDesc(sl,cur):"пусто"}</small>`;
+  BALANCE.gear.tiers.forEach((t,i)=>{const pr=gearPrice(i),own=cur>=i,ok=!own&&G.gold>=pr;o+=`<button class="btn ${own?"on":""}" style="min-height:44px" data-pa="ug:${sl}:${i}" ${ok?"":"disabled"} title="${gearDesc(sl,i)}">${own?"✓ ":""}${t.n} · 💰${pr}<br><small>${gearDesc(sl,i)}</small></button>`});o+=`</div>`}
+ return o+`</div><div class="ovfoot" style="text-align:right"><button class="btn on" style="min-height:44px" data-pa="ugclose">Готово</button></div>`}
+function buyGear(sl,tier){const u=GEAR_U;if(!u)return;const g=gearOf(u),pr=gearPrice(tier);if(g[sl]>=tier){banner("Уже есть не хуже");return}if(G.gold<pr){banner("Не хватает серебра: нужно 💰"+pr+", есть 💰"+(G.gold|0));return}
+ G.gold-=pr;const was=g[sl];g[sl]=tier;if(sl==="armor"){const B=BALANCE.gear.armor,k0=was>=0?B[was][1]:0,k1=B[tier][1],base=u.mhp/(1+k0),nm=Math.round(base*(1+k1));u.hp+=nm-u.mhp;u.mhp=nm}
+ if(window.SFX){SFX.play("coin");SFX.play("up",.2)}if(typeof upgradeFx==="function"&&u.type!=="hero"){u.flash=.2}banner("Куплено: "+BALANCE.gear.tiers[tier].n+" ("+gearDesc(sl,tier)+")");uiDirty=true}
+{const o=window.upgStat;window.upgStat=function(u){const r=o.apply(this,arguments);if(u&&u.ugear&&u.side!=="e"){const g=u.ugear,B=BALANCE.gear;r.dmg*=1+(g.weapon>=0?B.weapon[g.weapon]:0);r.armor+=g.armor>=0?B.armor[g.armor][0]:0;r.rate/=1+(g.amulet>=0?B.amulet[g.amulet]:0)}return r}}
+{const o=window.portalOverlay;window.portalOverlay=function(){if(overlay==="ugear")return gearOverlay();return o.apply(this,arguments)}}
+{const o=window.portalAction;window.portalAction=function(a){if(a.startsWith("ug:")){const[,sl,t]=a.split(":");buyGear(sl,+t);return}if(a==="ugclose"){overlay=null;G.paused=false;GEAR_U=null;uiDirty=true;return}return o.apply(this,arguments)}}
+// герой: кнопка снаряжения в окне умений
+{const o=window.skillOverlay;window.skillOverlay=function(){let h=o.apply(this,arguments);return h.replace("<h2>","<div style='float:right'><button class='btn on' style='min-height:44px' data-pa='ughero'>🛡 Снаряжение героя</button></div><h2>")}}
+{const o=window.portalAction;window.portalAction=function(a){if(a==="ughero"){openGear(G.hero);return}return o.apply(this,arguments)}}
 
 window.__sim=function(policy,maxT=1500,cls){newGame(cls);G.sim=true;if(G.mode==="portal")autoDeck();if(G.mode==="portal"){for(const x of G.kitShop.slice().sort((a,b)=>b.price-a.price))if(G.kit>=x.price&&!G.eq[x.it.slot]){G.kit-=x.price;x.sold=1;G.bag.push(x.it);equip(x.it.uid)}}let t=0;const dt=1/30;while(!G.result&&t<maxT){if(overlay==="art"||overlay==="map"||overlay==="base"||overlay==="loadout"||overlay==="deck"||overlay==="deck5")overlay=null;if(overlay==="fork")chooseBranch("south");if(G.hl.pts>0)autoSkill();for(const t in ALLY)if(P_(t).xp>=upCost(t))upgradeType(t);for(const t in SPECS)if(P_(t).lvl>=SPEC_LVL&&!P_(t).spec)P_(t).spec=SPECS[t][(Math.random()*3)|0].id;if(overlay==="camp"){if(policy.camp)policy.camp();overlay=null;G.state="march"}
  if(policy.tick)policy.tick(t);if(overlay!=="fork")update(dt);t+=dt}return{result:G.result,stage:G.mode==="portal"?G.world.nodes.filter(n=>n.visited).length:G.stage,arts:G.arts&&G.arts.length,rivals:G.stats.rivals||0,time:Math.round(t),kills:G.stats.kills,lost:G.stats.lost,gold:G.gold,allies:allies().length}};
