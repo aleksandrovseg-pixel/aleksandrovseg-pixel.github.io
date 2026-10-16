@@ -72,10 +72,10 @@ html,body{max-width:100vw;overflow:hidden}#ov{box-sizing:border-box;max-width:96
 
 .card{display:flex!important;flex-direction:column;align-items:center;box-sizing:border-box}.card img{flex:1 1 auto;min-height:0;width:100%!important;max-width:100%!important;height:auto!important;object-fit:contain;object-position:center bottom;padding-top:4px;margin:0!important;box-sizing:border-box}.card .cost{flex:none}
 .cport img,.dgrid img{object-fit:contain;object-position:center bottom;padding-top:4px;box-sizing:border-box}
-.hireB{border:none;font:inherit;cursor:pointer}.hireB.can{animation:hpulse 1.1s infinite;box-shadow:0 0 0 3px #ffd23a}.hireB.cant{filter:grayscale(.8);opacity:.7}
-@keyframes hpulse{50%{transform:scale(1.08);box-shadow:0 0 10px 4px #ffd23a}}.menuB{position:relative}.bang{position:absolute;right:-4px;top:-4px;background:#e02020;color:#fff;font:bold 12px sans-serif;border-radius:9px;width:18px;height:18px;line-height:18px;text-align:center;font-style:normal}
+.hireB{border:none;font:inherit;cursor:pointer}.hireB.can{box-shadow:0 0 0 3px #ffd23a}.hireB.cant{filter:grayscale(.8);opacity:.7}
+.menuB{position:relative}.bang{position:absolute;right:-4px;top:-4px;background:#e02020;color:#fff;font:bold 12px sans-serif;border-radius:9px;width:18px;height:18px;line-height:18px;text-align:center;font-style:normal}
 #cards>div[data-sum]:not(.poor):not(.lock){animation:cglow 1.2s infinite}#cards>div.poor{filter:grayscale(1);opacity:.55}@keyframes cglow{50%{box-shadow:0 0 12px 3px #ffd23a}}
-.hireB{min-width:48px;min-height:44px}.hireB.can{animation:hpulse2 1.1s infinite!important;transform:none!important}@keyframes hpulse2{0%,100%{box-shadow:0 0 0 3px #ffd23a}50%{box-shadow:0 0 12px 6px #ffd23a}}
+.hireB{min-width:48px;min-height:44px}.hireB.can{animation:hpulse2 1.1s infinite}@keyframes hpulse2{0%,100%{box-shadow:0 0 0 3px #ffd23a}50%{box-shadow:0 0 12px 6px #ffd23a}}
 #ov{top:calc(var(--tgh,46px) + 16px)!important;transform:translate(-50%,0)!important;max-height:calc(100vh - var(--tgh,46px) - 24px)!important}
 #ov>.ovfoot,#ov .ovfoot{position:sticky;bottom:-14px;margin:8px -14px -14px!important;padding:8px 14px;background:linear-gradient(rgba(255,246,220,.85),#fff6dc 40%);z-index:5;border-radius:0 0 14px 14px}
 </style></head><body>
@@ -420,7 +420,7 @@ function newGame(cls){cls=cls||"warrior";if(window.__legacy&&AREA_MODE){AREA_MOD
  speed:1,paused:false,priority:"nearest",behavior:{},stats:{kills:0,lost:0,summoned:0,earned:0,time:0},result:null};
  units=[];buildRoute(null);G.hl={lvl:1,xp:0,pts:0,ab:{},pas:{},spec:null};G.eq={weapon:null,armor:null,helm:null,acc:null};G.bag=[];loot=[];placeChests();const C=CLASSES[cls];if(!C.abil0)C.abil0=C.abil.slice();C.abil=C.abil0.slice();C.abil.forEach((a,i)=>G.hl.ab[a]=i<2?1:0);G.hcd={};
  const p0=posAt(0);G.hero={id:uid++,side:"a",type:"hero",def:{name:C.name,role:"hero",tags:[],look:C.look,speed:C.speed,hp:C.hp},x:p0.x+40,y:p0.y,hp:C.hp,mhp:C.hp,cd:0,ward:0};units.push(G.hero);recalcHero();G.hero.hp=G.hero.mhp;
- G.cap=window.__legacy?CFG.cap:CAP_CFG.start;for(const t of startSquad(cls))addAlly(t,true);overlay=null;if(!window.__legacy&&!window.__noWorld){clearRun();newWorldGame()}else banner("Отряд выступает: "+STAGES[0].name);uiDirty=true}
+ G.cap=window.__legacy?CFG.cap:CAP_CFG.start;for(const t of startSquad(cls))addAlly(t,true);overlay=null;if(!window.__legacy&&!window.__noWorld){newWorldGame()}else banner("Отряд выступает: "+STAGES[0].name);uiDirty=true}
 function buildRoute(branch){const pts=ROUTE_A.concat(branch?BRANCH[branch]:[],branch?ROUTE_B:[]);route=pts.map(p=>({x:p.x*TS+16,y:p.y*TS+16,stage:p.stage,fork:p.fork,end:p.end}));
  let s=0;route[0].s=0;for(let i=1;i<route.length;i++){s+=dist(route[i],route[i-1]);route[i].s=s}routeLen=s}
 function posAt(s){for(let i=1;i<route.length;i++)if(route[i].s>=s){const a=route[i-1],b=route[i],t=(s-a.s)/(b.s-a.s||1);return{x:a.x+(b.x-a.x)*t,y:a.y+(b.y-a.y)*t,dx:(b.x-a.x)/(b.s-a.s||1),dy:(b.y-a.y)/(b.s-a.s||1)}}const l=route[route.length-1];return{x:l.x,y:l.y,dx:1,dy:0}}
@@ -996,10 +996,15 @@ const BALANCE={
  areaScale:.65,            // площадь игровой зоны относительно полной карты (−35%)
  camps:{1:6,2:5,3:5,4:4},  // лагерей на область по опасности
  campSize:{1:[2,3],2:[3,4],3:[3,5],4:[4,5]}, // размер группы
- campPower:.5,             // сила одного врага ранних лагерей ≈ 0.5 бойца-компаньона
+ campPower:.5,
+ firstAreaPower:.75,       // доп. множитель силы врагов первой области (опасность 1)
+ allyHpMul:1.6,            // здоровье компаньонов
+ bountyMul:1.4,            // серебро за убийство             // сила одного врага ранних лагерей ≈ 0.5 бойца-компаньона
  powerByDanger:.22,        // +22% силы за уровень опасности
  gateScale:.12,            // +12% силы лагерей за каждые пройденные ворота
- guardMul:1.6,             // стража портала заметно сильнее обычных лагерей
+ guardMul:1.6,
+ firstGuardMul:1.1,        // стража первых ворот (пока G.gates===0) — мягче
+ firstGuardCount:3,        // и меньше врагов             // стража портала заметно сильнее обычных лагерей
  campHeal:.4,              // лечение героя и отряда после зачистки лагеря (доля макс. HP)
  startPool:["runner","skeleton","skelarcher"], // лёгкие враги первых областей, без элиты
  easyDanger:1,             // до этой опасности включительно — только лёгкие враги
@@ -1074,13 +1079,13 @@ function populateArea(n){const r=seedRand(n.seed^0x5bd1),S={enemies:[],chests:[]
   camp(k,elite){const p=spot(),g=++S.grp;S.objs.push({n:"campfire",px:p.x,py:p.y+10,k:.7});for(let i=0;i<k;i++)en(elite&&i===0&&n.danger>BALANCE.easyDanger?(n.danger>=3?"champion":"orc"):pool(),p.x,p.y,{grp:g,kind:"лагерь",camp:1})},
   patrol(k){const a=spot(),b=spot(),g=++S.grp;for(let i=0;i<k;i++)en(pool(),a.x,a.y,{grp:g,patrol:[a,b],kind:"патруль"})},
   chest(tier,guard){const p=spot();S.chests.push({x:p.x,y:p.y,tier,open:0});if(guard){const g=++S.grp;for(let i=0;i<3;i++)en(pool(),p.x+30,p.y,{grp:g,kind:"стража сундука"})}},
-  guardPortal(){for(const pt of portalSlots(n)){const L=G.world.links[pt.link];if(L.lock==="guards"&&L.a===n.id){const g=++S.grp;L.guardGrp=g;L.guardNode=n.id;for(let i=0;i<4;i++)en(i?pool():(n.danger<=BALANCE.easyDanger?"skeleton":"orc"),pt.x+(pt.tx<AX0+10?60:-60),pt.y,{grp:g,kind:"стража прохода",guardK:1})}}},
+  guardPortal(){for(const pt of portalSlots(n)){const L=G.world.links[pt.link];if(L.lock==="guards"&&L.a===n.id&&!S.enemies.some(e=>e.grp===L.guardGrp&&L.guardNode===n.id)){const g=++S.grp;L.guardGrp=g;L.guardNode=n.id;for(let i=0;i<((G.gates||0)===0?BALANCE.firstGuardCount:4);i++)en(i?pool():(n.danger<=BALANCE.easyDanger?"skeleton":"orc"),pt.x+(pt.tx<AX0+10?60:-60),pt.y,{grp:g,kind:"стража прохода",guardK:1})}}},
   lair(){const p=spot();S.enemies.push({type:"lair",x:p.x,y:p.y,home:{x:p.x,y:p.y},grp:++S.grp,lairPool:[pool(),pool()],kind:"вражеский портал"})},
   unique(){const p=spot(),t=n.danger>=3?"troll":"champion";en(t,p.x,p.y,{grp:++S.grp,uniq:1,name:["Гхарр Костолом","Морна Чёрный Шип","Урхаз Пожиратель"][(r()*3)|0],kind:"уникальный враг"})},
   boss(){en("warlord",cx+200,cy,{grp:++S.grp,boss:1,kind:"вождь"})},
   merchant(x,y){const keys=Object.keys(SERVICES).sort(()=>r()-.5),sv=keys.slice(0,5);if(!sv.includes("heal"))sv[0]="heal";S.props.push({kind:"merchant",x,y,services:sv,stock:null,stockAt:-99})},
   rest(x,y){S.props.push({kind:"rest",x,y})}};
- AREA_TYPES[n.type].populate(n,c);
+ AREA_TYPES[n.type].populate(n,c);c.guardPortal();
  const art=G.world.arts[n.id];if(art){if(n.type==="unique")S.uniqArt=art;else{const p=spot();S.props.push({kind:"artifact",art,x:p.x,y:p.y});if(n.type!=="trade"&&n.type!=="rest"){const g=++S.grp;for(let i=0;i<3;i++)en(pool(),p.x+40,p.y,{grp:g,kind:"стража артефакта"})}}}
  if(n.rival){const p=spot();S.rival={cls:pickRivalCls(r),x:p.x,y:p.y,grp:++S.grp,alive:true}}
  for(const pt of portalSlots(n)){const L=G.world.links[pt.link];if(L.secret&&!L.found&&L.a===n.id){const p=spot();S.props.push({kind:"rune",link:L.id,x:p.x,y:p.y})}}
@@ -1089,7 +1094,7 @@ function pickRivalCls(r){const ks=Object.keys(CLASSES).filter(k=>k!==G.cls);retu
 // ---------- вход/выход ----------
 const PORTAL_K={hp:.85,dmg:.8};
 function mkEnemy(sp){let d=ENEMY[sp.type];if(!d){(window.__bad=window.__bad||[]).push(String(sp.type));d=ENEMY.skeleton;sp.type="skeleton"}if(sp.uniq)d=Object.assign({},d,{name:sp.name,hp:Math.round(d.hp*2.2),dmg:d.dmg*1.4,tags:(d.tags||[]).concat(["elite"]),bounty:60});
- if(!d.lair&&!d.boss&&!sp.uniq){const B=BALANCE,R=B.refAlly,dg=Math.max(1,curNode().danger||1),pw=B.campPower*(1+B.powerByDanger*(dg-1))*(1+B.gateScale*(G.gates||0))*(sp.guardK?B.guardMul:1),own=d.hp*d.dmg/(d.rate||1),ref=R.hp*R.dmg/R.rate,k=Math.sqrt(pw*ref/own);d=Object.assign({},d,{hp:Math.max(8,Math.round(d.hp*k)),dmg:Math.max(1,d.dmg*k)})}else if(!d.lair)d=Object.assign({},d,{hp:Math.round(d.hp*PORTAL_K.hp),dmg:d.dmg*PORTAL_K.dmg});
+ if(!d.lair&&!d.boss&&!sp.uniq){const B=BALANCE,R=B.refAlly,dg=Math.max(1,curNode().danger||1),pw=B.campPower*(dg<=1?B.firstAreaPower:1)*(1+B.powerByDanger*(dg-1))*(1+B.gateScale*(G.gates||0))*(sp.guardK?((G.gates||0)===0?B.firstGuardMul:B.guardMul):1),own=d.hp*d.dmg/(d.rate||1),ref=R.hp*R.dmg/R.rate,k=Math.sqrt(pw*ref/own);d=Object.assign({},d,{hp:Math.max(8,Math.round(d.hp*k)),dmg:Math.max(1,d.dmg*k)})}if(!d.lair)d=Object.assign({},d,{bounty:Math.round((d.bounty||5)*BALANCE.bountyMul)});else if(!d.lair)d=Object.assign({},d,{hp:Math.round(d.hp*PORTAL_K.hp),dmg:d.dmg*PORTAL_K.dmg});
  const u={id:uid++,side:"e",type:sp.type,def:d,x:sp.x,y:sp.y,hp:sp.hp??d.hp,mhp:d.hp,cd:Math.random(),ward:0,stealth:!!d.stealth,spec:sp,home:sp.home};unstick(u);return u}
 function saveArea(){const n=curNode();if(!n||!n.state)return;const S=n.state;S.enemies=units.filter(u=>u.side==="e"&&!u.dead&&u.spec&&!u.rivalUnit&&!u.rivalHero&&ENEMY[u.type]).map(u=>Object.assign(u.spec,{x:u.x,y:u.y,hp:u.hp}));S.loot=loot.slice();
  if(S.rival&&S.rival.alive){const rh=units.find(u=>u.rivalHero&&!u.dead);if(!rh)S.rival.alive=false;else{S.rival.x=rh.x;S.rival.y=rh.y;S.rival.hp=rh.hp}}}
@@ -1195,7 +1200,7 @@ function mapOverlay(){const W=G.world,cur=W.cur;let svg=`<svg width="100%" viewB
   `<text x="${o.mx}" y="${o.my+7}" font-size="20" text-anchor="middle">${fog&&o.known<2?"?":{start:"⛺",combat:"⚔",danger:"☠",trade:"🏪",rest:"🔥",secret:"✦",unique:"👹",boss:"🏰"}[o.type]}</text>`+
   `<text x="${o.mx}" y="${o.my+44}" font-size="13" font-weight="bold" text-anchor="middle" fill="#3a2410">${o.known===2?o.name:"неизведано"}</text>${(o.state&&o.state.rivalSeen&&o.state.rival.alive)?`<text x="${o.mx+26}" y="${o.my-18}" font-size="18">⚠</text>`:""}${o.state&&o.state.cleared?`<text x="${o.mx-30}" y="${o.my-18}" font-size="15">✔</text>`:""}</g>`}
  svg+=`</svg>`;return`<h2>🗺 Карта Междумирья (M)</h2>${svg}<p><small>⛺ лагерь · ⚔ бой · ☠ опасно · 🏪 торговый пост · 🔥 отдых · ✦ тайное · 👹 уникальный враг · 🏰 цель — Цитадель · 🔒 заперто (стража/печать) · ⚠ соперник · пунктир — не пройдено · ? туман. Ключей-печатей: ${G.keys||0}. Артефактов: ${G.arts.length} (лимит ${G.cap}).</small></p><div style="text-align:right"><button class="btn on" data-pa="close">Закрыть</button></div>`}
-function portalAction(a){if(a==="close"&&G&&G.deck&&G.deck.length&&G.deck.length<G.deckMax&&overlay==="art"){G.artPop=null;overlay="deck5";uiDirty=true;return}if(a.startsWith("dk:")){deckAction(a.slice(3));return}if(a.startsWith("csel:")){window.__csel=a.slice(5);uiDirty=true;if(typeof renderHUD==="function")renderHUD();return}if(a.startsWith("tauto:")){const AS=G.autoS||(G.autoS=[1,1,1,1]),i=+a.slice(6);AS[i]=AS[i]?0:1;uiDirty=true;return}if(a==="resume"){resumeRun();return}if(a==="close"){overlay=null;G.artPop=null}else if(a==="go"){overlay=null;if(G.kit>0){G.gold+=G.kit;log("Остаток стартового бюджета → +"+G.kit+" серебра");G.kit=0}saveRun();banner("Отряд выступает: "+curNode().name)}else if(a.startsWith("kit:")){const x=G.kitShop[+a.slice(4)];if(x&&!x.sold&&G.gold>=x.price){G.gold-=x.price;x.sold=1;G.bag.push(x.it);equip(x.it.uid)}}
+function portalAction(a){if(a==="close"&&G&&G.deck&&G.deck.length&&G.deck.length<G.deckMax&&overlay==="art"){G.artPop=null;overlay="deck5";uiDirty=true;return}if(a.startsWith("dk:")){deckAction(a.slice(3));return}if(a.startsWith("csel:")){window.__csel=a.slice(5);uiDirty=true;if(typeof renderHUD==="function")renderHUD();return}if(a.startsWith("tauto:")){const AS=G.autoS||(G.autoS=[1,1,1,1]),i=+a.slice(6);AS[i]=AS[i]?0:1;uiDirty=true;return}if(a==="resume"){resumeRun();return}if(a==="close"){overlay=null;G.artPop=null}else if(a==="go"){clearRun();G.runLive=true;overlay=null;if(G.kit>0){G.gold+=G.kit;log("Остаток стартового бюджета → +"+G.kit+" серебра");G.kit=0}saveRun();banner("Отряд выступает: "+curNode().name)}else if(a.startsWith("kit:")){const x=G.kitShop[+a.slice(4)];if(x&&!x.sold&&G.gold>=x.price){G.gold-=x.price;x.sold=1;G.bag.push(x.it);equip(x.it.uid)}}
  else if(a.startsWith("base:"))baseAction(a.slice(5));else if(a==="travel"&&G.near&&G.near.kind==="portal")travel(G.near.p);else if(a==="trade")overlay="base";else if(a==="rest")baseAction("rest");else if(a.startsWith("dismiss:"))dismissUnit(a.slice(8));uiDirty=true;renderHUD()}
 document.addEventListener("click",e=>{const b=e.target.closest("[data-pa]");if(!b)return;const a=b.dataset.pa;if(a.startsWith("pick:")){const[,sl,id]=a.split(":");pickSkill(+sl,id);overlay="skillpick:"+sl;uiDirty=true;renderHUD();return}if(a.startsWith("sslot:")){overlay="skillpick:"+a.slice(6);uiDirty=true;renderHUD();return}portalAction(a)});
 addEventListener("keydown",e=>{if(!G||!G.world)return;if(e.code==="KeyM"){overlay=overlay==="map"?null:"map";uiDirty=true}if(e.code==="KeyF"&&G.near){portalAction(G.near.kind==="portal"?"travel":G.near.kind==="merchant"?"trade":"rest")}if(e.code==="KeyH"&&G.potions>0&&G.hero.hp<G.hero.mhp){G.potions--;G.hero.hp=Math.min(G.hero.mhp,G.hero.hp+G.hero.mhp*.5);uiDirty=true}});
@@ -1284,14 +1289,14 @@ document.addEventListener("click",e=>{const b=e.target.closest("[data-rad]");if(
 
 // ---------- сохранение текущего забега (граф, отряд, снаряжение, герой); прогресс классов юнитов (G.prog) — постоянный ----------
 const RUN_KEY="mg_run_v1";
-function saveRun(){if(!G||G.mode!=="portal"||G.result||G.sim)return;try{saveArea();const sq=units.filter(u=>u.side==="a"&&!u.dead&&ALLY[u.type]&&u.ttl==null).map(u=>({t:u.type,hp:Math.round(u.hp)}));
- localStorage.setItem(RUN_KEY,JSON.stringify({v:1,cls:G.cls,gold:G.gold,cap:G.cap,arts:G.arts,keys:G.keys,potions:G.potions,eq:G.eq,bag:G.bag,hl:G.hl,abil:CLASSES[G.cls].abil,autoS:G.autoS,prog:G.prog,deck:G.deck,deckMax:G.deckMax,unlocked:[...G.unlocked],upg:G.upg,stats:G.stats,world:G.world,sq,heroHp:Math.round(G.hero.hp)}))}catch(e){window.__saveErr=String(e);console.warn("saveRun",e)}}
+function saveRun(){if(!G||G.mode!=="portal"||G.result||G.sim||!G.runLive)return;try{saveArea();const sq=units.filter(u=>u.side==="a"&&!u.dead&&ALLY[u.type]&&u.ttl==null).map(u=>({t:u.type,hp:Math.round(u.hp),mhp:Math.round(u.mhp),g:u.ugear||null}));
+ localStorage.setItem(RUN_KEY,JSON.stringify({v:1,cls:G.cls,gold:G.gold,cap:G.cap,arts:G.arts,keys:G.keys,potions:G.potions,eq:G.eq,bag:G.bag,hl:G.hl,abil:CLASSES[G.cls].abil,autoS:G.autoS,prog:G.prog,deck:G.deck,deckMax:G.deckMax,unlocked:[...G.unlocked],upg:G.upg,stats:G.stats,world:G.world,sq,heroHp:Math.round(G.hero.hp),heroGear:G.hero.ugear||null,heroMhp:Math.round(G.hero.mhp)}))}catch(e){window.__saveErr=String(e);console.warn("saveRun",e)}}
 function hasRun(){try{return!!localStorage.getItem(RUN_KEY)}catch(e){return false}}
 function clearRun(){try{localStorage.removeItem(RUN_KEY)}catch(e){}}
 function resumeRun(){let R;try{R=JSON.parse(localStorage.getItem(RUN_KEY))}catch(e){}if(!R||R.v!==1)return log("Сохранённого забега нет");
  window.__noWorld=1;newGame(R.cls);window.__noWorld=0;Object.assign(G,{gold:R.gold,cap:R.cap,arts:R.arts,keys:R.keys,potions:R.potions,eq:R.eq,bag:R.bag,hl:R.hl,upg:R.upg||{},stats:R.stats,unlocked:new Set(R.unlocked),mode:"portal",kit:0,kitShop:[],world:R.world,autoS:R.autoS,prog:R.prog||{},deck:R.deck||[],deckMax:R.deckMax||4});
- CLASSES[R.cls].abil=R.abil;units=units.filter(u=>u===G.hero);for(const q of R.sq){addAlly(q.t,true);const u=units[units.length-1];if(u&&u.type===q.t)u.hp=Math.min(u.mhp,q.hp)}
- recalcHero();G.hero.hp=Math.min(G.hero.mhp,R.heroHp||G.hero.mhp);const cur=G.world.cur;G.world.moves--;enterArea(cur,null);overlay=null;banner("Забег продолжен: "+curNode().name);uiDirty=true}
+ CLASSES[R.cls].abil=R.abil;units=units.filter(u=>u===G.hero);for(const q of R.sq){addAlly(q.t,true);const u=units[units.length-1];if(u&&u.type===q.t){if(q.g){u.ugear=q.g;if(q.mhp)u.mhp=q.mhp}u.hp=Math.min(u.mhp,q.hp)}}
+ if(R.heroGear)G.hero.ugear=R.heroGear;recalcHero();G.hero.hp=Math.min(G.hero.mhp,R.heroHp||G.hero.mhp);const cur=G.world.cur;G.world.moves--;enterArea(cur,null);overlay=null;G.runLive=true;banner("Забег продолжен: "+curNode().name);uiDirty=true}
 addEventListener("beforeunload",()=>saveRun());setInterval(()=>{if(G&&!G.paused)saveRun()},15000);
 
 // ---------- спутники: колода призыва забега (4 типа; 5-й открывает артефакт) ----------
@@ -1303,7 +1308,7 @@ function deckAction(a){const[k,t]=a.split(":");if(G.deck&&G.unlocked)for(const x
  else if(k==="tog"){const i=G.deck.indexOf(t);if(i>=0){G.deck.splice(i,1);for(const u of units.filter(u=>u.side==="a"&&u.type===t&&!u.dead)){G.gold+=summonCost(t);units.splice(units.indexOf(u),1)}}else if(G.deck.length<G.deckMax)G.deck.push(t)}
  else if(k==="hire"){if(!G.deck.includes(t)&&G.deck.length<G.deckMax)G.deck.push(t);if(G.deck.includes(t)&&squadN()<capEff()&&G.gold>=summonCost(t)){G.gold-=summonCost(t);addAlly(t,true)}}
  else if(k==="fire"){const u=units.find(u=>u.side==="a"&&u.type===t&&!u.dead);if(u){units.splice(units.indexOf(u),1);G.gold+=summonCost(t)}}
- else if(k==="next"){if(G.deck.length===G.deckMax){G.unlocked=new Set(G.deck);overlay="loadout"}}
+ else if(k==="next"){if(G.deck.length===G.deckMax){G.unlocked=new Set(G.deck);for(const k of G.deck)G.unlocked.add(k);overlay="loadout"}}
  else if(k==="add5"){if(G.deck.length<G.deckMax&&!G.deck.includes(t)){G.deck.push(t);G.unlocked.add(t);overlay=null;banner("Новый тип спутника: "+ALLY[t].name)}}
  uiDirty=true;renderHUD()}
 function deckOverlay(){const R=ROSTER[G.cls],sel=window.__dsel;let o=`<h2>Спутники — ${CLASSES[G.cls].name}</h2><p style="font-size:12px">Выберите <b>${G.deckMax}</b> типа в колоду призыва (${G.deck.length}/${G.deckMax}) и наймите стартовый отряд. Бюджет: <b>💰 ${G.gold|0}</b> — хватает ровно на 2 спутника. Сейчас можно нанять до <b>${capEff()}</b> (3-й — после первых ворот). Отряд: <b>${squadN()} / ${capEff()}</b>.</p><div class="dwrap"><div class="cgrid dgrid">`;
@@ -1375,7 +1380,7 @@ function gearOverlay(){const u=GEAR_U;if(!u||u.dead){overlay=null;return""}const
   BALANCE.gear.tiers.forEach((t,i)=>{const pr=gearPrice(i),own=cur>=i,ok=!own&&G.gold>=pr;o+=`<button class="btn ${own?"on":""}" style="min-height:44px" data-pa="ug:${sl}:${i}" ${ok?"":"disabled"} title="${gearDesc(sl,i)}">${own?"✓ ":""}${t.n} · 💰${pr}<br><small>${gearDesc(sl,i)}</small></button>`});o+=`</div>`}
  return o+`</div><div class="ovfoot" style="text-align:right"><button class="btn on" style="min-height:44px" data-pa="ugclose">Готово</button></div>`}
 function buyGear(sl,tier){const u=GEAR_U;if(!u)return;const g=gearOf(u),pr=gearPrice(tier);if(g[sl]>=tier){banner("Уже есть не хуже");return}if(G.gold<pr){banner("Не хватает серебра: нужно 💰"+pr+", есть 💰"+(G.gold|0));return}
- G.gold-=pr;const was=g[sl];g[sl]=tier;if(sl==="armor"){const B=BALANCE.gear.armor,k0=was>=0?B[was][1]:0,k1=B[tier][1],base=u.mhp/(1+k0),nm=Math.round(base*(1+k1));u.hp+=nm-u.mhp;u.mhp=nm}
+ G.gold-=pr;const was=g[sl];g[sl]=tier;if(sl==="armor"&&u.type==="hero")recalcHero();else if(sl==="armor"){const B=BALANCE.gear.armor,k0=was>=0?B[was][1]:0,k1=B[tier][1],base=u.mhp/(1+k0),nm=Math.round(base*(1+k1));u.hp+=nm-u.mhp;u.mhp=nm}
  if(window.SFX){SFX.play("coin");SFX.play("up",.2)}if(typeof upgradeFx==="function"&&u.type!=="hero"){u.flash=.2}banner("Куплено: "+BALANCE.gear.tiers[tier].n+" ("+gearDesc(sl,tier)+")");uiDirty=true}
 {const o=window.upgStat;window.upgStat=function(u){const r=o.apply(this,arguments);if(u&&u.ugear&&u.side!=="e"){const g=u.ugear,B=BALANCE.gear;r.dmg*=1+(g.weapon>=0?B.weapon[g.weapon]:0);r.armor+=g.armor>=0?B.armor[g.armor][0]:0;r.rate/=1+(g.amulet>=0?B.amulet[g.amulet]:0)}return r}}
 {const o=window.portalOverlay;window.portalOverlay=function(){if(overlay==="ugear")return gearOverlay();return o.apply(this,arguments)}}
@@ -1383,6 +1388,11 @@ function buyGear(sl,tier){const u=GEAR_U;if(!u)return;const g=gearOf(u),pr=gearP
 // герой: кнопка снаряжения в окне умений
 {const o=window.skillOverlay;window.skillOverlay=function(){let h=o.apply(this,arguments);return h.replace("<h2>","<div style='float:right'><button class='btn on' style='min-height:44px' data-pa='ughero'>🛡 Снаряжение героя</button></div><h2>")}}
 {const o=window.portalAction;window.portalAction=function(a){if(a==="ughero"){openGear(G.hero);return}return o.apply(this,arguments)}}
+
+{const o=window.recalcHero;window.recalcHero=function(){o.apply(this,arguments);const h=G.hero;if(h&&h.ugear&&h.ugear.armor>=0){const nm=Math.round(h.mhp*(1+BALANCE.gear.armor[h.ugear.armor][1]));h.hp+=nm-h.mhp;h.mhp=nm}}}
+
+{const o=window.lvlHp;window.lvlHp=function(t,l){return Math.round(o.apply(this,arguments)*(G&&G.mode==="portal"?BALANCE.allyHpMul:1))}}
+{const o=window.onGatePassed;window.onGatePassed=function(){const L=G.trans&&G.trans.p&&G.world.links[G.trans.p.link];if((G.gates||0)===1&&G.goldAtGate1==null){G.goldAtGate1=Math.round(G.gold);G.earnedAtGate1=Math.round(G.stats.earned||0);G.lvlAtGate1=Object.values(G.prog).map(p=>p.lvl).join("")}return o.apply(this,arguments)}}
 
 window.__sim=function(policy,maxT=1500,cls){newGame(cls);G.sim=true;if(G.mode==="portal")autoDeck();if(G.mode==="portal"){for(const x of G.kitShop.slice().sort((a,b)=>b.price-a.price))if(G.kit>=x.price&&!G.eq[x.it.slot]){G.kit-=x.price;x.sold=1;G.bag.push(x.it);equip(x.it.uid)}}let t=0;const dt=1/30;while(!G.result&&t<maxT){if(overlay==="art"||overlay==="map"||overlay==="base"||overlay==="loadout"||overlay==="deck"||overlay==="deck5")overlay=null;if(overlay==="fork")chooseBranch("south");if(G.hl.pts>0)autoSkill();for(const t in ALLY)if(P_(t).xp>=upCost(t))upgradeType(t);for(const t in SPECS)if(P_(t).lvl>=SPEC_LVL&&!P_(t).spec)P_(t).spec=SPECS[t][(Math.random()*3)|0].id;if(overlay==="camp"){if(policy.camp)policy.camp();overlay=null;G.state="march"}
  if(policy.tick)policy.tick(t);if(overlay!=="fork")update(dt);t+=dt}return{result:G.result,stage:G.mode==="portal"?G.world.nodes.filter(n=>n.visited).length:G.stage,arts:G.arts&&G.arts.length,rivals:G.stats.rivals||0,time:Math.round(t),kills:G.stats.kills,lost:G.stats.lost,gold:G.gold,allies:allies().length}};
